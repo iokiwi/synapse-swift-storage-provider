@@ -10,10 +10,10 @@ setup(
     py_modules=["swift_storage_provider"],
     scripts=["scripts/swift_media_upload"],
     install_requires=[
-        "openstacksdk",
-        "humanize",
-        "psycopg2",
-        "PyYAML",
-        "tqdm",
+        "openstacksdk<=0.49.0",
+        "humanize>=0.5.1<0.6",
+        "psycopg2>=2.7.5<3.0",
+        "PyYAML>=3.13<4.0",
+        "tqdm>=4.26.0<5.0",
     ],
 )
