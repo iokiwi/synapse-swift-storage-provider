@@ -424,14 +424,13 @@ def main():
 
     if args.cmd == "upload":
         sqlite_conn = get_sqlite_conn(parser)
-        connection = openstack.connect.from_config(args.cloud)
+        connection = openstack.connection.from_config(args.cloud)
         run_upload(
             connection.object_store,
             args.container,
             sqlite_conn,
             args.base_path,
             should_delete=args.delete,
-            storage_class=args.storage_class,
         )
         return
 
