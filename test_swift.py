@@ -30,7 +30,7 @@ from threading import Event, Thread
 
 from mock import Mock
 
-from s3_storage_provider import _stream_to_producer, _S3Responder, _ProducerStatus
+from swift_storage_provider import _stream_to_producer, _S3Responder, _ProducerStatus
 
 
 class StreamingProducerTestCase(unittest.TestCase):
