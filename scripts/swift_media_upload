@@ -329,6 +329,11 @@ def main():
         help="The name of the cloud to choose from clouds.yml"
     )
 
+    parser.add_argument(
+        "--container", required=True,
+        help="The name of the container to upload to"
+    )
+
     update_db_parser = subparsers.add_parser(
         "update-db", help="Syncs rows from database to local cache"
     )
