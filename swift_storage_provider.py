@@ -39,15 +39,6 @@ except ImportError:
 
 logger = logging.getLogger("synapse.swift")
 
-
-# The list of valid AWS storage class names
-# _VALID_STORAGE_CLASSES = (
-#     "STANDARD",
-#     "REDUCED_REDUNDANCY",
-#     "STANDARD_IA",
-#     "INTELLIGENT_TIERING",
-# )
-
 # Chunk size to use when reading from swift connection in bytes
 READ_CHUNK_SIZE = 16 * 1024
 
@@ -62,34 +53,11 @@ class SwiftStorageProviderBackend(StorageProvider):
     def __init__(self, hs, config):
         self.cache_directory = hs.config.media_store_path
         self.container = config["container"]
-        # self.storage_class = config["storage_class"]
+        self.cloud = config["cloud"]
         self.api_kwargs = {}
 
-        if "os_project_name" in config:
-            self.api_kwargs["project_name"] = config["os_project_name"]
-
-        if "os_region_name" in config:
-            self.api_kwargs["region_name"] = config["os_region_name"]
-
-        if "os_auth_url" in config:
-            self.api_kwargs["auth_url"] = config["os_auth_url"]
-
-        if "os_username" in config:
-            self.api_kwargs["username"] = config["os_username"]
-
-        if "os_password" in config:
-            self.api_kwargs["password"] = config["os_password"]
-
-        if "os_user_domain_name" in config:
-            self.api_kwargs["user_domain_name"] = config["os_user_domain_name"]
-
-        # TODO(simon): These should default to 'Default' or 'default' unless
-        # overidden
-        if "os_user_domain_name" in config:
-            self.api_kwargs["user_domain_name"] = config["os_user_domain_name"]
-
-        if "os_project_domain_name" in config:
-            self.api_kwargs["project_domain_name"] = config["os_project_domain_name"]
+        if "region_name" in config:
+            self.api_kwargs["region_name"] = config["region_name"]
 
         threadpool_size = config.get("threadpool_size", 40)
         self._download_pool = ThreadPool(
@@ -101,11 +69,9 @@ class SwiftStorageProviderBackend(StorageProvider):
         """See StorageProvider.store_file"""
 
         def _store_file():
-            connection = openstack.connect(**self.api_kwargs)
+            connection = openstack.connection.from_config(**self.api_kwargs)
             connection.object_store.create_object(
-                self.container,
-                path,
-                filename=os.path.join(self.cache_directory, path)
+                self.container, path, filename=os.path.join(self.cache_directory, path)
             )
 
         # XXX: reactor.callInThread doesn't return anything, so I don't think this does
@@ -133,39 +99,21 @@ class SwiftStorageProviderBackend(StorageProvider):
         """
 
         container = config["container"]
+        cloud = config["cloud"]
 
         assert isinstance(container, string_types)
 
-        result = {
-            "container": container,
-        }
+        result = {"container": container, "cloud": cloud}
 
-
-        if "os_project_name" in config:
-            result["project_name"] = config["os_project_name"]
-
-        if "os_region_name" in config:
-            result["region_name"] = config["os_region_name"]
-
-        if "os_auth_url" in config:
-           result["auth_url"] = config["os_auth_url"]
-
-        if "os_username" in config:
-            result["username"] = config["os_username"]
-
-        if "os_password" in config:
-            result["password"] = config["os_password"]
-
-        if "os_user_domain_name" in config:
-            result["user_domain_name"] = config["os_user_domain_name"]
-
-        if "os_project_domain_name" in config:
-            result["project_domain_name"] = config["os_project_domain_name"]
+        if "region_name" in config:
+            result["region_name"] = config["region_name"]
 
         return result
 
 
-def swift_download_task(container, api_kwargs, object_name, deferred, parent_logcontext):
+def swift_download_task(
+    container, api_kwargs, object_name, deferred, parent_logcontext
+):
     """Attempts to download a file from swift.
 
     Args:
@@ -187,15 +135,15 @@ def swift_download_task(container, api_kwargs, object_name, deferred, parent_log
         try:
             connection = local_data.connection
         except AttributeError:
-            connection = openstack.connect(**api_kwargs)
+            connection = openstack.connection.from_config(**api_kwargs)
             local_data.connection = connection
 
         try:
             resp = connection.download_object(object_name, container)
-        except openstack.exceptions.ResourceNotFound as e:
-                logger.info("Media %s not found in swift", key)
-                reactor.callFromThread(deferred.callback, None)
-                return
+        except openstack.exceptions.ResourceNotFound:
+            logger.info("Media %s not found in swift", object_name)
+            reactor.callFromThread(deferred.callback, None)
+            return
 
             reactor.callFromThread(deferred.errback, Failure())
             return
@@ -257,9 +205,9 @@ def _stream_to_producer(reactor, producer, body, status=None, timeout=None):
         if body:
             body.close()
 
+
 class _SwiftResponder(Responder):
-    """A Responder for swift. Created by _SwiftDownloadThread
-    """
+    """A Responder for swift. Created by _SwiftDownloadThread"""
 
     def __init__(self):
         # Triggered by responder when more data has been requested (or
@@ -276,8 +224,7 @@ class _SwiftResponder(Responder):
         self.deferred = defer.Deferred()
 
     def write_to_consumer(self, consumer):
-        """See Responder.write_to_consumer
-        """
+        """See Responder.write_to_consumer"""
         self.consumer = consumer
         # We are a IPushProducer, so we start producing immediately until we
         # get a pauseProducing or stopProducing
@@ -290,19 +237,16 @@ class _SwiftResponder(Responder):
         self.wakeup_event.set()
 
     def resumeProducing(self):
-        """See IPushProducer.resumeProducing
-        """
+        """See IPushProducer.resumeProducing"""
         # The consumer is asking for more data, signal _SwDownloadThread
         self.wakeup_event.set()
 
     def pauseProducing(self):
-        """See IPushProducer.stopProducing
-        """
+        """See IPushProducer.stopProducing"""
         self.wakeup_event.clear()
 
     def stopProducing(self):
-        """See IPushProducer.stopProducing
-        """
+        """See IPushProducer.stopProducing"""
         # The consumer wants no more data ever, signal _S3DownloadThread
         self.stop_event.set()
         self.wakeup_event.set()
@@ -311,8 +255,7 @@ class _SwiftResponder(Responder):
                 self.deferred.errback(Exception("Consumer ask to stop producing"))
 
     def _write(self, chunk):
-        """Writes the chunk of data to consumer. Called by _S3DownloadThread.
-        """
+        """Writes the chunk of data to consumer. Called by _S3DownloadThread."""
         if self.consumer and not self.stop_event.is_set():
             self.consumer.write(chunk)
 
@@ -328,8 +271,7 @@ class _SwiftResponder(Responder):
             self.deferred.errback(failure)
 
     def _finish(self):
-        """Called when there is no more data to write. Called by _S3DownloadThread.
-        """
+        """Called when there is no more data to write. Called by _S3DownloadThread."""
         if self.consumer:
             self.consumer.unregisterProducer()
             self.consumer = None

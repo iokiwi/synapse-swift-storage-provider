@@ -10,9 +10,7 @@ setup(
     py_modules=["swift_storage_provider"],
     scripts=["scripts/swift_media_upload"],
     install_requires=[
-        # "boto3>=1.9.23<2.0",
-        # "botocore>=1.12.23<2.0",
-        "openstacksdk>=0.50.0",
+        "openstacksdk>=0.47.0,<=0.47.0; python_version<'3.6'",
         "humanize>=0.5.1<0.6",
         "psycopg2>=2.7.5<3.0",
         "PyYAML>=3.13<4.0",

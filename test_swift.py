@@ -20,17 +20,15 @@ from twisted.trial import unittest
 
 import sys
 
+from threading import Event, Thread
+from mock import Mock
+from swift_storage_provider import _stream_to_producer, _SwiftResponder, _ProducerStatus
+
 is_py2 = sys.version[0] == "2"
 if is_py2:
     from Queue import Queue
 else:
     from queue import Queue
-
-from threading import Event, Thread
-
-from mock import Mock
-
-from s3_storage_provider import _stream_to_producer, _S3Responder, _ProducerStatus
 
 
 class StreamingProducerTestCase(unittest.TestCase):
@@ -47,7 +45,7 @@ class StreamingProducerTestCase(unittest.TestCase):
         self.consumer.write.side_effect = write
 
         self.producer_status = _ProducerStatus()
-        self.producer = _S3Responder()
+        self.producer = _SwiftResponder()
         self.thread = Thread(
             target=_stream_to_producer,
             args=(self.reactor, self.producer, self.body),
@@ -129,8 +127,7 @@ class StreamingProducerTestCase(unittest.TestCase):
         self.assertIsInstance(deferred.result, Failure)
 
     def wait_for_thread(self):
-        """Wait for something to call `callFromThread` and advance reactor
-        """
+        """Wait for something to call `callFromThread` and advance reactor"""
         self.reactor.thread_event.wait(1)
         self.reactor.thread_event.clear()
         self.reactor.advance(0)
@@ -159,8 +156,7 @@ class ThreadedMemoryReactorClock(MemoryReactorClock):
 
 
 class Channel(object):
-    """Simple channel to mimic a thread safe file like object
-    """
+    """Simple channel to mimic a thread safe file like object"""
 
     def __init__(self):
         self._queue = Queue()
