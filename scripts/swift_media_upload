@@ -217,7 +217,7 @@ def check_file_in_swift(swift, container, object_name):
     """
     try:
         swift.get_object(object_name, container)
-    except openstack.exceptions.ResourceNotFound as e:
+    except openstack.exceptions.ResourceNotFound:
         return False
     return True
 
@@ -324,11 +324,6 @@ def main():
     parser = argparse.ArgumentParser(prog="swift_media_upload")
     subparsers = parser.add_subparsers(help="command to run", dest="cmd")
 
-    parser.add_argument(
-        "--cloud", required=True,
-        help="The name of the cloud to choose from clouds.yml"
-    )
-
     update_db_parser = subparsers.add_parser(
         "update-db", help="Syncs rows from database to local cache"
     )
@@ -385,7 +380,15 @@ def main():
         "base_path", help="Base path of the media store directory"
     )
 
-    upload_parser.add_argument("container", help="swift container to upload to")
+    upload_parser.add_argument(
+        "container",
+        help="The name of the swift container to upload media to"
+    )
+
+    upload_parser.add_argument(
+        "--cloud", required=True,
+        help="The name of the cloud to choose from clouds.yml"
+    )
 
     upload_parser.add_argument(
         "--delete",
@@ -420,7 +423,7 @@ def main():
         return
 
     if args.cmd == "upload":
-        sqlite_conn = get_sqlite_conn(parser)        
+        sqlite_conn = get_sqlite_conn(parser)
         connection = openstack.connect.from_config(args.cloud)
         run_upload(
             connection.object_store,
