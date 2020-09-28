@@ -71,9 +71,7 @@ class SwiftStorageProviderBackend(StorageProvider):
         def _store_file():
             connection = openstack.connection.from_config(**self.api_kwargs)
             connection.object_store.create_object(
-                self.container,
-                path,
-                filename=os.path.join(self.cache_directory, path)
+                self.container, path, filename=os.path.join(self.cache_directory, path)
             )
 
         # XXX: reactor.callInThread doesn't return anything, so I don't think this does
@@ -105,10 +103,7 @@ class SwiftStorageProviderBackend(StorageProvider):
 
         assert isinstance(container, string_types)
 
-        result = {
-            "container": container,
-            "cloud": cloud
-        }
+        result = {"container": container, "cloud": cloud}
 
         if "region_name" in config:
             result["region_name"] = config["region_name"]
@@ -116,7 +111,9 @@ class SwiftStorageProviderBackend(StorageProvider):
         return result
 
 
-def swift_download_task(container, api_kwargs, object_name, deferred, parent_logcontext):
+def swift_download_task(
+    container, api_kwargs, object_name, deferred, parent_logcontext
+):
     """Attempts to download a file from swift.
 
     Args:
@@ -143,10 +140,10 @@ def swift_download_task(container, api_kwargs, object_name, deferred, parent_log
 
         try:
             resp = connection.download_object(object_name, container)
-        except openstack.exceptions.ResourceNotFound as e:
-                logger.info("Media %s not found in swift", key)
-                reactor.callFromThread(deferred.callback, None)
-                return
+        except openstack.exceptions.ResourceNotFound:
+            logger.info("Media %s not found in swift", object_name)
+            reactor.callFromThread(deferred.callback, None)
+            return
 
             reactor.callFromThread(deferred.errback, Failure())
             return
@@ -208,9 +205,9 @@ def _stream_to_producer(reactor, producer, body, status=None, timeout=None):
         if body:
             body.close()
 
+
 class _SwiftResponder(Responder):
-    """A Responder for swift. Created by _SwiftDownloadThread
-    """
+    """A Responder for swift. Created by _SwiftDownloadThread"""
 
     def __init__(self):
         # Triggered by responder when more data has been requested (or
@@ -227,8 +224,7 @@ class _SwiftResponder(Responder):
         self.deferred = defer.Deferred()
 
     def write_to_consumer(self, consumer):
-        """See Responder.write_to_consumer
-        """
+        """See Responder.write_to_consumer"""
         self.consumer = consumer
         # We are a IPushProducer, so we start producing immediately until we
         # get a pauseProducing or stopProducing
@@ -241,19 +237,16 @@ class _SwiftResponder(Responder):
         self.wakeup_event.set()
 
     def resumeProducing(self):
-        """See IPushProducer.resumeProducing
-        """
+        """See IPushProducer.resumeProducing"""
         # The consumer is asking for more data, signal _SwDownloadThread
         self.wakeup_event.set()
 
     def pauseProducing(self):
-        """See IPushProducer.stopProducing
-        """
+        """See IPushProducer.stopProducing"""
         self.wakeup_event.clear()
 
     def stopProducing(self):
-        """See IPushProducer.stopProducing
-        """
+        """See IPushProducer.stopProducing"""
         # The consumer wants no more data ever, signal _S3DownloadThread
         self.stop_event.set()
         self.wakeup_event.set()
@@ -262,8 +255,7 @@ class _SwiftResponder(Responder):
                 self.deferred.errback(Exception("Consumer ask to stop producing"))
 
     def _write(self, chunk):
-        """Writes the chunk of data to consumer. Called by _S3DownloadThread.
-        """
+        """Writes the chunk of data to consumer. Called by _S3DownloadThread."""
         if self.consumer and not self.stop_event.is_set():
             self.consumer.write(chunk)
 
@@ -279,8 +271,7 @@ class _SwiftResponder(Responder):
             self.deferred.errback(failure)
 
     def _finish(self):
-        """Called when there is no more data to write. Called by _S3DownloadThread.
-        """
+        """Called when there is no more data to write. Called by _S3DownloadThread."""
         if self.consumer:
             self.consumer.unregisterProducer()
             self.consumer = None
