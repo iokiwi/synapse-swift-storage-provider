@@ -30,7 +30,7 @@ from threading import Event, Thread
 
 from mock import Mock
 
-from swift_storage_provider import _stream_to_producer, _S3Responder, _ProducerStatus
+from swift_storage_provider import _stream_to_producer, _SwiftResponder, _ProducerStatus
 
 
 class StreamingProducerTestCase(unittest.TestCase):
@@ -47,7 +47,7 @@ class StreamingProducerTestCase(unittest.TestCase):
         self.consumer.write.side_effect = write
 
         self.producer_status = _ProducerStatus()
-        self.producer = _S3Responder()
+        self.producer = _SwiftResponder()
         self.thread = Thread(
             target=_stream_to_producer,
             args=(self.reactor, self.producer, self.body),
