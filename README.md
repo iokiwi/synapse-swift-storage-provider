@@ -1,11 +1,8 @@
-[WIP] Synapse Swift Storage Provider
+Synapse Swift Storage Provider
 ===========================
 
-.. warning::
-
-  This storage provider is a work in progress and should not be used in
-  production at this stage
-
+[![Build Status](https://travis-ci.com/iokiwi/synapse-swift-storage-provider.svg?branch=master)](https://travis-ci.com/iokiwi/synapse-swift-storage-provider)
+[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 
 This module can be used by synapse as a storage provider, allowing it to fetch
 and store media in Openstack swift.
@@ -14,7 +11,7 @@ and store media in Openstack swift.
 Usage
 -----
 
-The `swift_storage_provider.py` should be on the PYTHONPATH when starting
+The `swift_storage_provider.py` should be on the `PYTHONPATH` when starting
 synapse.
 
 Example of entry in synapse config:
