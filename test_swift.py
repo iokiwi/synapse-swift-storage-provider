@@ -20,17 +20,15 @@ from twisted.trial import unittest
 
 import sys
 
+from threading import Event, Thread
+from mock import Mock
+from swift_storage_provider import _stream_to_producer, _SwiftResponder, _ProducerStatus
+
 is_py2 = sys.version[0] == "2"
 if is_py2:
     from Queue import Queue
 else:
     from queue import Queue
-
-from threading import Event, Thread
-
-from mock import Mock
-
-from swift_storage_provider import _stream_to_producer, _SwiftResponder, _ProducerStatus
 
 
 class StreamingProducerTestCase(unittest.TestCase):

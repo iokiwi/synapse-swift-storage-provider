@@ -208,6 +208,7 @@ def _stream_to_producer(reactor, producer, body, status=None, timeout=None):
 
 class _SwiftResponder(Responder):
     """A Responder for swift. Created by _SwiftDownloadThread"""
+
     def __init__(self):
         # Triggered by responder when more data has been requested (or
         # stop_event has been triggered)
