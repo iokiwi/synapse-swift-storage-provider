@@ -2,3 +2,4 @@ include LICENSE
 include *.md
 
 exclude test_swift.py
+exclude Dockerfile
